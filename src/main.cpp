@@ -14,6 +14,9 @@ bool doSweepArmOut();
 bool doSweepArmIn();
 bool doUnload();
 
+unsigned long previousMillis;
+const long unloadDelay = 2000; // 2 second delay for unload cycle
+
 Relay _rl_pushArmOut(A0, true);
 Relay _rl_pushArmIn(A1, false);
 Relay _rl_sweepArmOut(A2, true);
@@ -44,12 +47,14 @@ void loop() {
   readSwitches();
 
   switch (_machineState) {
+
     case HOME:
       if (doHome())
       {
         _machineState = LOAD;
       }
       break;
+
     case LOAD:
       if (doLoad())
       {
@@ -63,24 +68,28 @@ void loop() {
         }
       }
       break;
+
     case SWEEP_ARM_OUT:
       if (doSweepArmOut())
       {
         _machineState = SWEEP_ARM_IN;
       }
       break;
+
     case SWEEP_ARM_IN:
       if (doSweepArmIn())
       {
         _machineState = LOAD;
       }
       break;
+
     case PUSH_ARM_OUT:
       if (doPushArmOut())
       {
         _machineState = PUSH_ARM_IN;
       }
       break;
+
     case PUSH_ARM_IN:
       if (doPushArmIn())
       {
@@ -92,15 +101,18 @@ void loop() {
         {
           _machineState = LOAD;
         }
-
       }
       break;
+
     case UNLOAD:
+      // Start a timer, so we can wait for the unload switch to disengage
+      previousMillis = millis();
       if (doUnload())
       {
         _machineState = LOAD;
       }
-    break;
+      break;
+
   }
   // static bool ledState;
   // if (_sw_baleRowReady.wasPressed())
@@ -273,9 +285,24 @@ bool doUnload()
   _rl_sweepArmIn.turnOff();
   _rl_sweepArmOut.turnOff();
 
+  // Note, the cycle both starts and stops with the same switch being tripped...
+  // Calculate the delay since the unload cycle started. We need to allow enough time for the
+  // switch to "untrip" (at the beginning of the cycle) before we start testing it for the
+  // end of cycle.
+
+  // blindly turn on the chain...
+  _rl_unloadChain.turnOn();
+
+  // If we haven't met the unload delay, return and keep waiting...
+  if (millis()- previousMillis < unloadDelay)
+  {
+    return false;
+  }
+
+  // Here, the initial unload delay has been satisfied. Wait for the switch to get tripped
+  // to end the cycle...
   if (!_sw_unloadChain.isPressed())
   {
-    _rl_unloadChain.turnOn();
     return false;
   }
   else
