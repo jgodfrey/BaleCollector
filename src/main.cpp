@@ -40,7 +40,9 @@ void setup() {
   Serial.begin(9600);
   initSwitches();
   initRelays();
-  pinMode(LED_BUILTIN, OUTPUT);
+
+  // Start up in "HOME" mode...
+  _machineState = HOME;
 }
 
 void loop() {
@@ -114,20 +116,12 @@ void loop() {
       break;
 
   }
-  // static bool ledState;
-  // if (_sw_baleRowReady.wasPressed())
-  // {
-  //   ledState = !ledState;
-  //   digitalWrite(LED_BUILTIN, ledState);
-  //   !ledState ? _rl_unloadChain.turnOn() : _rl_unloadChain.turnOff();
-  // }
 }
 
 bool doHome()
 {
   // Turn off unneeded functions
   _rl_loadChain.turnOff();
-  _rl_unloadChain.turnOff();
   _rl_pushArmOut.turnOff();
   _rl_sweepArmOut.turnOff();
 
@@ -141,7 +135,6 @@ bool doHome()
   {
     _rl_pushArmIn.turnOff();
   }
-
 
   // If the sweep arm isn't home, start it returning
   if (!_sw_sweepArmIn.isPressed())
@@ -293,7 +286,7 @@ bool doUnload()
   // blindly turn on the unload chain...
   _rl_unloadChain.turnOn();
 
-  // If we haven't met the unload delay, return and keep waiting...
+  // If we haven't yet satisfied the unload delay, return and keep waiting...
   if (millis() - previousMillis < unloadDelay)
   {
     return false;
