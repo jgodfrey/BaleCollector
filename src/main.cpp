@@ -290,11 +290,11 @@ bool doUnload()
   // switch to "untrip" (at the beginning of the cycle) before we start testing it for the
   // end of cycle.
 
-  // blindly turn on the chain...
+  // blindly turn on the unload chain...
   _rl_unloadChain.turnOn();
 
   // If we haven't met the unload delay, return and keep waiting...
-  if (millis()- previousMillis < unloadDelay)
+  if (millis() - previousMillis < unloadDelay)
   {
     return false;
   }
