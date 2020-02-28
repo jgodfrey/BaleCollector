@@ -18,7 +18,7 @@ unsigned long previousMillis;
 const long unloadDelay = 2000; // 2 second delay for unload cycle
 
 Relay _rl_pushArmOut(A0, true);
-Relay _rl_pushArmIn(A1, false);
+Relay _rl_pushArmIn(A1, true);
 Relay _rl_sweepArmOut(A2, true);
 Relay _rl_sweepArmIn(A3, true);
 Relay _rl_loadChain(A4, true);
