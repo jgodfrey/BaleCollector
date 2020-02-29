@@ -2,20 +2,7 @@
 #include "JC_Button.h"
 #include "Relay.h"
 
-void initSwitches();
-void readSwitches();
-void initRelays();
-
-bool doHome();
-bool doLoad();
-bool doPushArmOut();
-bool doPushArmIn();
-bool doSweepArmOut();
-bool doSweepArmIn();
-bool doUnload();
-
-bool unloadSwitchHasOpened = false;
-
+// Define the relays
 Relay _rl_pushArmOut(A0, true);
 Relay _rl_pushArmIn(A1, true);
 Relay _rl_sweepArmOut(A2, true);
@@ -23,6 +10,7 @@ Relay _rl_sweepArmIn(A3, true);
 Relay _rl_loadChain(A4, true);
 Relay _rl_unloadChain(A5, true);
 
+// Define the switches
 Button _sw_pushArmIn    = Button(2);
 Button _sw_pushArmOut   = Button(3);
 Button _sw_sweepArmIn   = Button(4);
@@ -32,8 +20,23 @@ Button _sw_baleRowReady = Button(7);
 Button _sw_loadIsFull   = Button(8);
 Button _sw_rowSwept     = Button(9);
 
+// State machine definitions
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
 machineState _machineState;
+
+// Forward declarations
+void initSwitches();
+void readSwitches();
+void initRelays();
+bool doHome();
+bool doLoad();
+bool doPushArmOut();
+bool doPushArmIn();
+bool doSweepArmOut();
+bool doSweepArmIn();
+bool doUnload();
+
+bool unloadSwitchHasOpened = false;
 
 void setup() {
   Serial.begin(9600);
@@ -45,8 +48,11 @@ void setup() {
 }
 
 void loop() {
+  // Update all switch states
   readSwitches();
 
+  // State machine processing
+  // Note, this should follow the definition found in the "docs" folder of the project
   switch (_machineState) {
 
     case HOME:
@@ -116,6 +122,7 @@ void loop() {
   }
 }
 
+// Home all processes to start in a known state
 bool doHome()
 {
   // Turn off unneeded functions
@@ -159,6 +166,7 @@ bool doHome()
   return true;
 }
 
+// Drive the load chain to get more bales
 bool doLoad()
 {
   // Turn off unneeded functions
@@ -181,6 +189,7 @@ bool doLoad()
   }
 }
 
+// Push the current set of 2-bales across to free up load chamber
 bool doPushArmOut()
 {
   // Turn off unneeded functions
@@ -203,6 +212,7 @@ bool doPushArmOut()
   }
 }
 
+// Retract the push arm to load the next set of 2-bales
 bool doPushArmIn()
 {
   // Turn off unneeded functions
@@ -224,6 +234,7 @@ bool doPushArmIn()
   }
 }
 
+// Sweep the first set of 2 bales 90 degrees to the front of the machine
 bool doSweepArmOut()
 {
   // Turn off unneeded functions
@@ -246,6 +257,7 @@ bool doSweepArmOut()
   }
 }
 
+// Retract the sweep arm to load the next set of 2-bales
 bool doSweepArmIn()
 {
   // Turn off unneeded functions
@@ -267,6 +279,7 @@ bool doSweepArmIn()
   }
 }
 
+// We're full. Unload the 10-bale set.
 bool doUnload()
 {
   // Turn off unneeded functions
@@ -306,6 +319,7 @@ bool doUnload()
   return true;
 }
 
+// Initialize all switches
 void initSwitches()
 {
   _sw_pushArmIn.begin();
@@ -318,6 +332,7 @@ void initSwitches()
   _sw_rowSwept.begin();
 }
 
+// Initialize all relays
 void initRelays()
 {
   _rl_pushArmOut.begin();
@@ -328,6 +343,7 @@ void initRelays()
   _rl_unloadChain.begin();
 }
 
+// Read and update the switch states
 void readSwitches()
 {
   _sw_pushArmIn.read();
