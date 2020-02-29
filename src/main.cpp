@@ -3,6 +3,7 @@
 #include "Relay.h"
 
 // Define the relays
+// arg1: pin #, arg2, Normally open
 Relay _rl_pushArmOut(A0, true);
 Relay _rl_pushArmIn(A1, true);
 Relay _rl_sweepArmOut(A2, true);
@@ -36,17 +37,20 @@ bool doSweepArmOut();
 bool doSweepArmIn();
 bool doUnload();
 
+// Track the state of the unload switch (see explanaiton in doUnload())
 bool unloadSwitchHasOpened = false;
 
+// Core Arduino setup() function, used here for initilization
 void setup() {
   Serial.begin(9600);
   initSwitches();
   initRelays();
 
-  // Start up in "HOME" mode...
+  // Start in the "HOME" state...
   _machineState = HOME;
 }
 
+// Core Arduino loop() function, used here for FSM control
 void loop() {
   // Update all switch states
   readSwitches();
