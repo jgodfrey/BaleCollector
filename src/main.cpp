@@ -96,6 +96,7 @@ void loop() {
       {
         if (_sw_loadIsFull.isPressed())
         {
+          unloadSwitchHasOpened = false;
           _machineState = UNLOAD;
         }
         else
