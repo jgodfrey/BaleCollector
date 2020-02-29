@@ -14,8 +14,7 @@ bool doSweepArmOut();
 bool doSweepArmIn();
 bool doUnload();
 
-unsigned long previousMillis;
-const long unloadDelay = 2000; // 2 second delay for unload cycle
+bool unloadSwitchHasOpened = false;
 
 Relay _rl_pushArmOut(A0, true);
 Relay _rl_pushArmIn(A1, true);
@@ -107,8 +106,6 @@ void loop() {
       break;
 
     case UNLOAD:
-      // Start a timer, so we can wait for the unload switch to disengage
-      previousMillis = millis();
       if (doUnload())
       {
         _machineState = LOAD;
@@ -279,30 +276,33 @@ bool doUnload()
   _rl_sweepArmOut.turnOff();
 
   // Note, the cycle both starts and stops with the same switch being tripped...
-  // Calculate the delay since the unload cycle started. We need to allow enough time for the
-  // switch to "untrip" (at the beginning of the cycle) before we start testing it for the
-  // end of cycle.
+  // The switch should be "pressed" at the start of the cycle. Run the unload chain until
+  // the switch opens. Then, continue to run the chain until the switch closes again.
 
   // blindly turn on the unload chain...
   _rl_unloadChain.turnOn();
 
-  // If we haven't yet satisfied the unload delay, return and keep waiting...
-  if (millis() - previousMillis < unloadDelay)
+  // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
+  if (!unloadSwitchHasOpened && _sw_unloadChain.isPressed())
   {
     return false;
   }
 
-  // Here, the initial unload delay has been satisfied. Wait for the switch to get tripped
-  // to end the cycle...
+  // Here, the switch has opened (should be the start of the unload cycle)
+  // Remember its state, but keep waiting...
+  unloadSwitchHasOpened = true;
+
+  // If the switch is *NOT* pressed, we're still unloading. Keep waiting...
   if (!_sw_unloadChain.isPressed())
   {
     return false;
   }
-  else
-  {
-    _rl_unloadChain.turnOff();
-    return true;
-  }
+
+  // Finally, the switch is closed again and we're at the end of the unload state
+  unloadSwitchHasOpened = false;
+  _rl_unloadChain.turnOff();
+
+  return true;
 }
 
 void initSwitches()
