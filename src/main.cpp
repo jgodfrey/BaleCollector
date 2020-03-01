@@ -2,6 +2,8 @@
 #include "JC_Button.h"
 #include "Relay.h"
 
+bool DEBUG = false;
+
 // Define the relays
 // arg1: pin #, arg2, Normally open
 Relay _rl_pushArmOut(A0, true);
@@ -24,10 +26,12 @@ Button _sw_rowSwept     = Button(9);
 // State machine definitions
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
 machineState _machineState;
+machineState _previousMachineState;
 
 // Forward declarations
 void initSwitches();
 void readSwitches();
+void writeSwitchStateChanges();
 void initRelays();
 bool doHome();
 bool doLoad();
@@ -42,12 +46,16 @@ bool unloadSwitchHasOpened = false;
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
-  Serial.begin(9600);
+  if (DEBUG)
+  {
+    Serial.begin(9600);
+  }
   initSwitches();
   initRelays();
 
   // Start in the "HOME" state...
   _machineState = HOME;
+  _previousMachineState = _machineState;
 }
 
 // Core Arduino loop() function, used here for FSM control
@@ -123,10 +131,15 @@ void loop() {
       }
       break;
 
+    if (DEBUG && _machineState != _previousMachineState)
+    {
+      Serial.println("Prev State: " + String(_machineState));
+    }
+
   }
 }
 
-// Home all processes to start in a known state
+// Home all mechanical functions to start in a known state
 bool doHome()
 {
   // Turn off unneeded functions
@@ -347,7 +360,7 @@ void initRelays()
   _rl_unloadChain.begin();
 }
 
-// Read and update the switch states
+// Read and update all switch states
 void readSwitches()
 {
   _sw_pushArmIn.read();
@@ -358,4 +371,92 @@ void readSwitches()
   _sw_baleRowReady.read();
   _sw_loadIsFull.read();
   _sw_rowSwept.read();
+
+  if (DEBUG)
+  {
+    writeSwitchStateChanges();
+  }
+}
+
+void writeSwitchStateChanges()
+{
+  if (_sw_pushArmIn.wasPressed())
+  {
+    Serial.println("Push Arm In: Pressed");
+  }
+
+  if (_sw_pushArmIn.wasReleased())
+  {
+    Serial.println("Push Arm In: Released");
+  }
+
+  if (_sw_pushArmOut.wasPressed())
+  {
+    Serial.println("Push Arm Out: Pressed");
+  }
+
+  if (_sw_pushArmOut.wasReleased())
+  {
+    Serial.println("Push Arm Out: Released");
+  }
+
+  if (_sw_sweepArmIn.wasPressed())
+  {
+    Serial.println("Sweep Arm In: Pressed");
+  }
+
+  if (_sw_sweepArmIn.wasReleased())
+  {
+    Serial.println("Sweep Arm In: Released");
+  }
+
+  if (_sw_sweepArmOut.wasPressed())
+  {
+    Serial.println("Sweep Arm Out: Pressed");
+  }
+
+  if (_sw_sweepArmOut.wasReleased())
+  {
+    Serial.println("Sweep Arm Out: Released");
+  }
+
+  if (_sw_unloadChain.wasPressed())
+  {
+    Serial.println("Unload Chain: Pressed");
+  }
+
+  if (_sw_unloadChain.wasReleased())
+  {
+    Serial.println("Unload Chain: Released");
+  }
+
+  if (_sw_baleRowReady.wasPressed())
+  {
+    Serial.println("Bale Row Ready: Pressed");
+  }
+
+  if (_sw_baleRowReady.wasReleased())
+  {
+    Serial.println("Bale Row Ready: Released");
+  }
+
+  if (_sw_loadIsFull.wasPressed())
+  {
+    Serial.println("Load Is Full: Pressed");
+  }
+
+  if (_sw_loadIsFull.wasReleased())
+  {
+    Serial.println("Load Is Full: Released");
+  }
+
+  if (_sw_rowSwept.wasPressed())
+  {
+    Serial.println("Row Swept: Pressed");
+  }
+
+  if (_sw_rowSwept.wasReleased())
+  {
+    Serial.println("Row Swept: Released");
+  }
 }
