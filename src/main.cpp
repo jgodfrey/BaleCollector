@@ -25,6 +25,9 @@ Button _sw_rowSwept     = Button(9);
 
 // State machine definitions
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
+const char *_machineStateNames[] = {
+  "Home", "Load", "Sweep Arm Out", "Sweep Arm In", "Push Arm Out", "Push Arm In", "Unload" };
+
 machineState _machineState;
 machineState _previousMachineState;
 
@@ -135,8 +138,9 @@ void loop() {
 
     if (DEBUG && _machineState != _previousMachineState)
     {
-      Serial.println("Changing to state: " + String(_machineState));
+      Serial.println("Changing to state: " + String(_machineStateNames[_machineState]));
     }
+
     _previousMachineState = _machineState;
 }
 
