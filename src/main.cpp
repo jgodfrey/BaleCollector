@@ -387,81 +387,81 @@ void writeSwitchStateChanges()
 {
   if (_sw_pushArmIn.wasPressed())
   {
-    Serial.println("Push Arm In: Pressed");
+    Serial.println("    - Push Arm In: Pressed");
   }
 
   if (_sw_pushArmIn.wasReleased())
   {
-    Serial.println("Push Arm In: Released");
+    Serial.println("    - Push Arm In: Released");
   }
 
   if (_sw_pushArmOut.wasPressed())
   {
-    Serial.println("Push Arm Out: Pressed");
+    Serial.println("    - Push Arm Out: Pressed");
   }
 
   if (_sw_pushArmOut.wasReleased())
   {
-    Serial.println("Push Arm Out: Released");
+    Serial.println("    - Push Arm Out: Released");
   }
 
   if (_sw_sweepArmIn.wasPressed())
   {
-    Serial.println("Sweep Arm In: Pressed");
+    Serial.println("    - Sweep Arm In: Pressed");
   }
 
   if (_sw_sweepArmIn.wasReleased())
   {
-    Serial.println("Sweep Arm In: Released");
+    Serial.println("    - Sweep Arm In: Released");
   }
 
   if (_sw_sweepArmOut.wasPressed())
   {
-    Serial.println("Sweep Arm Out: Pressed");
+    Serial.println("    - Sweep Arm Out: Pressed");
   }
 
   if (_sw_sweepArmOut.wasReleased())
   {
-    Serial.println("Sweep Arm Out: Released");
+    Serial.println("    - Sweep Arm Out: Released");
   }
 
   if (_sw_unloadChain.wasPressed())
   {
-    Serial.println("Unload Chain: Pressed");
+    Serial.println("    - Unload Chain: Pressed");
   }
 
   if (_sw_unloadChain.wasReleased())
   {
-    Serial.println("Unload Chain: Released");
+    Serial.println("    - Unload Chain: Released");
   }
 
   if (_sw_baleRowReady.wasPressed())
   {
-    Serial.println("Bale Row Ready: Pressed");
+    Serial.println("    - Bale Row Ready: Pressed");
   }
 
   if (_sw_baleRowReady.wasReleased())
   {
-    Serial.println("Bale Row Ready: Released");
+    Serial.println("    - Bale Row Ready: Released");
   }
 
   if (_sw_loadIsFull.wasPressed())
   {
-    Serial.println("Load Is Full: Pressed");
+    Serial.println("    - Load Is Full: Pressed");
   }
 
   if (_sw_loadIsFull.wasReleased())
   {
-    Serial.println("Load Is Full: Released");
+    Serial.println("    - Load Is Full: Released");
   }
 
   if (_sw_rowSwept.wasPressed())
   {
-    Serial.println("Row Swept: Pressed");
+    Serial.println("    - Row Swept: Pressed");
   }
 
   if (_sw_rowSwept.wasReleased())
   {
-    Serial.println("Row Swept: Released");
+    Serial.println("    - Row Swept: Released");
   }
 }
