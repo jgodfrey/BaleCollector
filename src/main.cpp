@@ -2,7 +2,7 @@
 #include "JC_Button.h"
 #include "Relay.h"
 
-bool DEBUG = false;
+bool DEBUG = true;
 
 // Define the relays
 // arg1: pin #, arg2, Normally open
@@ -48,14 +48,14 @@ bool unloadSwitchHasOpened = false;
 void setup() {
   if (DEBUG)
   {
-    Serial.begin(9600);
+    Serial.begin(115200);
   }
   initSwitches();
   initRelays();
 
   // Start in the "HOME" state...
   _machineState = HOME;
-  _previousMachineState = _machineState;
+  _previousMachineState = LOAD;
 }
 
 // Core Arduino loop() function, used here for FSM control
@@ -131,12 +131,13 @@ void loop() {
       }
       break;
 
+  }
+
     if (DEBUG && _machineState != _previousMachineState)
     {
-      Serial.println("Prev State: " + String(_machineState));
+      Serial.println("Changing to state: " + String(_machineState));
     }
-
-  }
+    _previousMachineState = _machineState;
 }
 
 // Home all mechanical functions to start in a known state
