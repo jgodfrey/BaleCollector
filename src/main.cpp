@@ -2,7 +2,7 @@
 #include "JC_Button.h"
 #include "Relay.h"
 
-bool DEBUG = true;
+#define DEBUG
 
 // Define the relays
 // arg1: pin #, arg2, Normally open
@@ -49,10 +49,10 @@ bool unloadSwitchHasOpened = false;
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
-  if (DEBUG)
-  {
+  #ifdef DEBUG
     Serial.begin(115200);
-  }
+  #endif
+
   initSwitches();
   initRelays();
 
@@ -133,15 +133,16 @@ void loop() {
         _machineState = LOAD;
       }
       break;
-
   }
 
-    if (DEBUG && _machineState != _previousMachineState)
+  #ifdef DEBUG
+    if (_machineState != _previousMachineState)
     {
       Serial.println("Changing to state: " + String(_machineStateNames[_machineState]));
     }
+  #endif
 
-    _previousMachineState = _machineState;
+  _previousMachineState = _machineState;
 }
 
 // Home all mechanical functions to start in a known state
@@ -377,10 +378,9 @@ void readSwitches()
   _sw_loadIsFull.read();
   _sw_rowSwept.read();
 
-  if (DEBUG)
-  {
+  #ifdef DEBUG
     writeSwitchStateChanges();
-  }
+  #endif
 }
 
 void writeSwitchStateChanges()
