@@ -46,9 +46,9 @@ void readSwitches();
 void writeSwitchStateChanges();
 
 // Track the state of the unload switch (see explanaiton in doUnload())
-bool unloadSwitchHasOpened = false;
+bool _unloadSwitchHasOpened;
 
-String _previousDebugString = "";
+String _previousDebugString;
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
@@ -62,12 +62,22 @@ void setup() {
   // Start in the "HOME" state...
   _machineState = HOME;
   _previousMachineState = LOAD;
+
+  _unloadSwitchHasOpened = false;
+  _previousDebugString = "";
 }
 
 // Core Arduino loop() function, used here for FSM control
 void loop() {
   // Update all switch states
   readSwitches();
+
+  #ifdef DEBUG
+    if (_machineState != _previousMachineState)
+    {
+      Serial.println("Changing to state: " + String(_machineStateNames[_machineState]));
+    }
+  #endif
 
   // State machine processing
   // Note, this should follow the definition found in the "docs" folder of the project
@@ -120,7 +130,7 @@ void loop() {
       {
         if (_sw_loadIsFull.isPressed())
         {
-          unloadSwitchHasOpened = false;
+          _unloadSwitchHasOpened = false;
           _machineState = UNLOAD;
         }
         else
@@ -137,13 +147,6 @@ void loop() {
       }
       break;
   }
-
-  #ifdef DEBUG
-    if (_machineState != _previousMachineState)
-    {
-      Serial.println("Changing to state: " + String(_machineStateNames[_machineState]));
-    }
-  #endif
 
   _previousMachineState = _machineState;
 }
@@ -347,7 +350,7 @@ bool doUnload()
   _rl_unloadChain.turnOn();
 
   // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
-  if (!unloadSwitchHasOpened && _sw_unloadChain.isPressed())
+  if (!_unloadSwitchHasOpened && _sw_unloadChain.isPressed())
   {
     #ifdef DEBUG
       printDebugString("    - Waiting for unload switch to open");
@@ -357,7 +360,7 @@ bool doUnload()
 
   // Here, the switch has opened (should be the start of the unload cycle)
   // Remember its state, but keep waiting...
-  unloadSwitchHasOpened = true;
+  _unloadSwitchHasOpened = true;
 
   // If the switch is *NOT* pressed, we're still unloading. Keep waiting...
   if (!_sw_unloadChain.isPressed())
@@ -369,7 +372,7 @@ bool doUnload()
   }
 
   // Finally, the switch is closed again and we're at the end of the unload state
-  unloadSwitchHasOpened = false;
+  _unloadSwitchHasOpened = false;
   _rl_unloadChain.turnOff();
 
   return true;
