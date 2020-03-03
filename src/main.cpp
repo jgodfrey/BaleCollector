@@ -32,20 +32,23 @@ machineState _machineState;
 machineState _previousMachineState;
 
 // Forward declarations
-void initSwitches();
-void readSwitches();
-void writeSwitchStateChanges();
-void initRelays();
 bool doHome();
 bool doLoad();
-bool doPushArmOut();
 bool doPushArmIn();
-bool doSweepArmOut();
+bool doPushArmOut();
 bool doSweepArmIn();
+bool doSweepArmOut();
 bool doUnload();
+void initRelays();
+void initSwitches();
+void printDebugString(String s);
+void readSwitches();
+void writeSwitchStateChanges();
 
 // Track the state of the unload switch (see explanaiton in doUnload())
 bool unloadSwitchHasOpened = false;
+
+String _previousDebugString = "";
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
@@ -156,6 +159,9 @@ bool doHome()
   // If the push arm isn't home, start it returning
   if (!_sw_pushArmIn.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for push arm in");
+    #endif
     _rl_pushArmIn.turnOn();
     return false;
   }
@@ -167,6 +173,9 @@ bool doHome()
   // If the sweep arm isn't home, start it returning
   if (!_sw_sweepArmIn.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for sweep arm in");
+    #endif
     _rl_sweepArmIn.turnOn();
     return false;
   }
@@ -178,6 +187,9 @@ bool doHome()
   // If the unload chain isn't home, start it returning (?????????????)
   if (!_sw_unloadChain.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for unload chain");
+    #endif
     _rl_unloadChain.turnOn();
     return false;
   }
@@ -202,6 +214,9 @@ bool doLoad()
   // If we don't have 2 bales to push, just keep loading...
   if (!_sw_baleRowReady.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for 2-bales ready");
+    #endif
     _rl_loadChain.turnOn();
     return false;
   }
@@ -225,6 +240,9 @@ bool doPushArmOut()
   // If the push arm isn't stroked out and the "full load" switch isn't tripped, activate the push arm
   if (!_sw_pushArmOut.isPressed() && !_sw_loadIsFull.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for push arm out OR full load switch");
+    #endif
     _rl_pushArmOut.turnOn();
     return false;
   }
@@ -247,6 +265,9 @@ bool doPushArmIn()
 
   if (!_sw_pushArmIn.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for push arm in");
+    #endif
     _rl_pushArmIn.turnOn();
     return false;
   }
@@ -270,6 +291,9 @@ bool doSweepArmOut()
   // If the sweep arm isn't stroked out, activate the sweep arm
   if (!_sw_sweepArmOut.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for sweep arm out");
+    #endif
     _rl_sweepArmOut.turnOn();
     return false;
   }
@@ -292,6 +316,9 @@ bool doSweepArmIn()
 
   if (!_sw_sweepArmIn.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for sweep arm in");
+    #endif
     _rl_sweepArmIn.turnOn();
     return false;
   }
@@ -322,6 +349,9 @@ bool doUnload()
   // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
   if (!unloadSwitchHasOpened && _sw_unloadChain.isPressed())
   {
+    #ifdef DEBUG
+      printDebugString("    - Waiting for unload switch to open");
+    #endif
     return false;
   }
 
@@ -332,6 +362,9 @@ bool doUnload()
   // If the switch is *NOT* pressed, we're still unloading. Keep waiting...
   if (!_sw_unloadChain.isPressed())
   {
+    #ifdef DEBUG
+     printDebugString("    - Waiting for unload switch to close");
+    #endif
     return false;
   }
 
@@ -379,8 +412,17 @@ void readSwitches()
   _sw_rowSwept.read();
 
   #ifdef DEBUG
-    writeSwitchStateChanges();
+    //writeSwitchStateChanges();
   #endif
+}
+
+void printDebugString(String s)
+{
+  if (!_previousDebugString.equals(s))
+  {
+    Serial.println(s);
+    _previousDebugString = s;
+  }
 }
 
 void writeSwitchStateChanges()
