@@ -5,7 +5,7 @@
 #define DEBUG
 
 // Define the relays
-// arg1: pin #, arg2, Normally open
+// arg1: pin #, arg2: Normally open
 Relay _rl_pushArmOut(A0, true);
 Relay _rl_pushArmIn(A1, true);
 Relay _rl_sweepArmOut(A2, true);
@@ -23,7 +23,7 @@ Button _sw_baleRowReady = Button(7);
 Button _sw_loadIsFull   = Button(8);
 Button _sw_rowSwept     = Button(9);
 
-// State machine definitions
+// State machine definitions and string names
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
 const char *_machineStateNames[] = {
   "Home", "Load", "Sweep Arm Out", "Sweep Arm In", "Push Arm Out", "Push Arm In", "Unload" };
