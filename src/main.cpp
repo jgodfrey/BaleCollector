@@ -25,6 +25,7 @@ Button _sw_rowSwept     = Button(9);
 
 // State machine definitions and string names
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
+
 const char *_machineStateNames[] = {
   "Home", "Load", "Sweep Arm Out", "Sweep Arm In", "Push Arm Out", "Push Arm In", "Unload" };
 
@@ -48,6 +49,11 @@ void writeSwitchStateChanges();
 // Track the state of the unload switch (see explanaiton in doUnload())
 bool _unloadSwitchHasOpened;
 
+// A small delay after the "baleRowReady" switch is tripped. Used or the first
+// row only, this allows the row to travel as far as possible before the sweep
+// arm is engaged.
+int _firstRowLoadDelay;
+
 String _previousDebugString;
 
 // Core Arduino setup() function, used here for initilization
@@ -65,6 +71,8 @@ void setup() {
 
   _unloadSwitchHasOpened = false;
   _previousDebugString = "";
+
+  _firstRowLoadDelay = 4000;
 }
 
 // Core Arduino loop() function, used here for FSM control
@@ -225,6 +233,9 @@ bool doLoad()
   }
   else
   {
+    // If this is the first row, let it travel for a while longer to better
+    // position it for the sweep arm
+    if (!_sw_rowSwept.isPressed()) { delay(_firstRowLoadDelay); }
     _rl_loadChain.turnOff();
     return true;
   }
