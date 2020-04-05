@@ -72,7 +72,7 @@ void setup() {
   _unloadSwitchHasOpened = false;
   _previousDebugString = "";
 
-  _firstRowLoadDelay = 4000;
+  _firstRowLoadDelay = 0;
 }
 
 // Core Arduino loop() function, used here for FSM control
