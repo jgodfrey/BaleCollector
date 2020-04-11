@@ -1,17 +1,17 @@
 #include <Arduino.h>
 #include "JC_Button.h"
-#include "Relay.h"
+#include <RelayModule.h>
 
 #define DEBUG
+#define INVERT_RELAY false
 
 // Define the relays
-// arg1: pin #, arg2: Normally open
-Relay _rl_pushArmOut(A0, true);
-Relay _rl_pushArmIn(A1, true);
-Relay _rl_sweepArmOut(A2, true);
-Relay _rl_sweepArmIn(A3, true);
-Relay _rl_loadChain(A4, true);
-Relay _rl_unloadChain(A5, true);
+RelayModule* _rl_pushArmOut = new RelayModule(A0, INVERT_RELAY);
+RelayModule* _rl_pushArmIn = new RelayModule(A1, INVERT_RELAY);
+RelayModule* _rl_sweepArmOut = new RelayModule(A2, INVERT_RELAY);
+RelayModule* _rl_sweepArmIn = new RelayModule(A3, INVERT_RELAY);
+RelayModule* _rl_loadChain = new RelayModule(A4, INVERT_RELAY);
+RelayModule* _rl_unloadChain = new RelayModule(A5, INVERT_RELAY);
 
 // Define the switches
 Button _sw_pushArmIn    = Button(2);
@@ -63,7 +63,8 @@ void setup() {
   #endif
 
   initSwitches();
-  initRelays();
+
+  _rl_pushArmOut->on();
 
   // Start in the "HOME" state...
   _machineState = HOME;
@@ -163,9 +164,9 @@ void loop() {
 bool doHome()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_loadChain->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmOut->off();
 
   // If the push arm isn't home, start it returning
   if (!_sw_pushArmIn.isPressed())
@@ -173,12 +174,12 @@ bool doHome()
     #ifdef DEBUG
       printDebugString("    - Waiting for push arm in");
     #endif
-    _rl_pushArmIn.turnOn();
+    _rl_pushArmIn->on();
     return false;
   }
   else
   {
-    _rl_pushArmIn.turnOff();
+    _rl_pushArmIn->off();
   }
 
   // If the sweep arm isn't home, start it returning
@@ -187,12 +188,12 @@ bool doHome()
     #ifdef DEBUG
       printDebugString("    - Waiting for sweep arm in");
     #endif
-    _rl_sweepArmIn.turnOn();
+    _rl_sweepArmIn->on();
     return false;
   }
   else
   {
-    _rl_sweepArmIn.turnOff();
+    _rl_sweepArmIn->off();
   }
 
   // If the unload chain isn't home, start it returning (?????????????)
@@ -201,12 +202,12 @@ bool doHome()
     #ifdef DEBUG
       printDebugString("    - Waiting for unload chain");
     #endif
-    _rl_unloadChain.turnOn();
+    _rl_unloadChain->on();
     return false;
   }
   else
   {
-    _rl_unloadChain.turnOff();
+    _rl_unloadChain->off();
   }
 
   return true;
@@ -216,11 +217,11 @@ bool doHome()
 bool doLoad()
 {
   // Turn off unneeded functions
-  _rl_unloadChain.turnOff();
-  _rl_pushArmIn.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmIn.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_unloadChain->off();
+  _rl_pushArmIn->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmIn->off();
+  _rl_sweepArmOut->off();
 
   // If we don't have 2 bales to push, just keep loading...
   if (!_sw_baleRowReady.isPressed())
@@ -228,7 +229,7 @@ bool doLoad()
     #ifdef DEBUG
       printDebugString("    - Waiting for 2-bales ready");
     #endif
-    _rl_loadChain.turnOn();
+    _rl_loadChain->on();
     return false;
   }
   else
@@ -236,7 +237,7 @@ bool doLoad()
     // If this is the first row, let it travel for a while longer to better
     // position it for the sweep arm
     if (!_sw_rowSwept.isPressed()) { delay(_firstRowLoadDelay); }
-    _rl_loadChain.turnOff();
+    _rl_loadChain->off();
     return true;
   }
 }
@@ -245,11 +246,11 @@ bool doLoad()
 bool doPushArmOut()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_unloadChain.turnOff();
-  _rl_pushArmIn.turnOff();
-  _rl_sweepArmIn.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_loadChain->off();
+  _rl_unloadChain->off();
+  _rl_pushArmIn->off();
+  _rl_sweepArmIn->off();
+  _rl_sweepArmOut->off();
 
   // If the push arm isn't stroked out and the "full load" switch isn't tripped, activate the push arm
   if (!_sw_pushArmOut.isPressed() && !_sw_loadIsFull.isPressed())
@@ -257,12 +258,12 @@ bool doPushArmOut()
     #ifdef DEBUG
       printDebugString("    - Waiting for push arm out OR full load switch");
     #endif
-    _rl_pushArmOut.turnOn();
+    _rl_pushArmOut->on();
     return false;
   }
   else
   {
-    _rl_pushArmOut.turnOff();
+    _rl_pushArmOut->off();
     return true;
   }
 }
@@ -271,23 +272,23 @@ bool doPushArmOut()
 bool doPushArmIn()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_unloadChain.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmIn.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_loadChain->off();
+  _rl_unloadChain->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmIn->off();
+  _rl_sweepArmOut->off();
 
   if (!_sw_pushArmIn.isPressed())
   {
     #ifdef DEBUG
       printDebugString("    - Waiting for push arm in");
     #endif
-    _rl_pushArmIn.turnOn();
+    _rl_pushArmIn->on();
     return false;
   }
   else
   {
-    _rl_pushArmIn.turnOff();
+    _rl_pushArmIn->off();
     return true;
   }
 }
@@ -296,11 +297,11 @@ bool doPushArmIn()
 bool doSweepArmOut()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_unloadChain.turnOff();
-  _rl_pushArmIn.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmIn.turnOff();
+  _rl_loadChain->off();
+  _rl_unloadChain->off();
+  _rl_pushArmIn->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmIn->off();
 
   // If the sweep arm isn't stroked out, activate the sweep arm
   if (!_sw_sweepArmOut.isPressed())
@@ -308,12 +309,12 @@ bool doSweepArmOut()
     #ifdef DEBUG
       printDebugString("    - Waiting for sweep arm out");
     #endif
-    _rl_sweepArmOut.turnOn();
+    _rl_sweepArmOut->on();
     return false;
   }
   else
   {
-    _rl_sweepArmOut.turnOff();
+    _rl_sweepArmOut->off();
     return true;
   }
 }
@@ -322,23 +323,23 @@ bool doSweepArmOut()
 bool doSweepArmIn()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_unloadChain.turnOff();
-  _rl_pushArmIn.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_loadChain->off();
+  _rl_unloadChain->off();
+  _rl_pushArmIn->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmOut->off();
 
   if (!_sw_sweepArmIn.isPressed())
   {
     #ifdef DEBUG
       printDebugString("    - Waiting for sweep arm in");
     #endif
-    _rl_sweepArmIn.turnOn();
+    _rl_sweepArmIn->on();
     return false;
   }
   else
   {
-    _rl_sweepArmIn.turnOff();
+    _rl_sweepArmIn->off();
     return true;
   }
 }
@@ -347,18 +348,18 @@ bool doSweepArmIn()
 bool doUnload()
 {
   // Turn off unneeded functions
-  _rl_loadChain.turnOff();
-  _rl_pushArmIn.turnOff();
-  _rl_pushArmOut.turnOff();
-  _rl_sweepArmIn.turnOff();
-  _rl_sweepArmOut.turnOff();
+  _rl_loadChain->off();
+  _rl_pushArmIn->off();
+  _rl_pushArmOut->off();
+  _rl_sweepArmIn->off();
+  _rl_sweepArmOut->off();
 
   // Note, the cycle both starts and stops with the same switch being tripped...
   // The switch should be "pressed" at the start of the cycle. Run the unload chain until
   // the switch opens. Then, continue to run the chain until the switch closes again.
 
   // blindly turn on the unload chain...
-  _rl_unloadChain.turnOn();
+  _rl_unloadChain->on();
 
   // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
   if (!_unloadSwitchHasOpened && _sw_unloadChain.isPressed())
@@ -384,7 +385,7 @@ bool doUnload()
 
   // Finally, the switch is closed again and we're at the end of the unload state
   _unloadSwitchHasOpened = false;
-  _rl_unloadChain.turnOff();
+  _rl_unloadChain->off();
 
   return true;
 }
@@ -400,17 +401,6 @@ void initSwitches()
   _sw_baleRowReady.begin();
   _sw_loadIsFull.begin();
   _sw_rowSwept.begin();
-}
-
-// Initialize all relays
-void initRelays()
-{
-  _rl_pushArmOut.begin();
-  _rl_pushArmIn.begin();
-  _rl_sweepArmOut.begin();
-  _rl_sweepArmIn.begin();
-  _rl_loadChain.begin();
-  _rl_unloadChain.begin();
 }
 
 // Read and update all switch states
