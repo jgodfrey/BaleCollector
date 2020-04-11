@@ -6,11 +6,11 @@
 #define INVERT_RELAY false
 
 // Define the relays
-RelayModule* _rl_pushArmOut = new RelayModule(A0, INVERT_RELAY);
-RelayModule* _rl_pushArmIn = new RelayModule(A1, INVERT_RELAY);
+RelayModule* _rl_pushArmOut  = new RelayModule(A0, INVERT_RELAY);
+RelayModule* _rl_pushArmIn   = new RelayModule(A1, INVERT_RELAY);
 RelayModule* _rl_sweepArmOut = new RelayModule(A2, INVERT_RELAY);
-RelayModule* _rl_sweepArmIn = new RelayModule(A3, INVERT_RELAY);
-RelayModule* _rl_loadChain = new RelayModule(A4, INVERT_RELAY);
+RelayModule* _rl_sweepArmIn  = new RelayModule(A3, INVERT_RELAY);
+RelayModule* _rl_loadChain   = new RelayModule(A4, INVERT_RELAY);
 RelayModule* _rl_unloadChain = new RelayModule(A5, INVERT_RELAY);
 
 // Define the switches
@@ -49,7 +49,7 @@ void writeSwitchStateChanges();
 // Track the state of the unload switch (see explanaiton in doUnload())
 bool _unloadSwitchHasOpened;
 
-// A small delay after the "baleRowReady" switch is tripped. Used or the first
+// A small delay after the "baleRowReady" switch is tripped. Used for the first
 // row only, this allows the row to travel as far as possible before the sweep
 // arm is engaged.
 int _firstRowLoadDelay;
@@ -63,8 +63,6 @@ void setup() {
   #endif
 
   initSwitches();
-
-  _rl_pushArmOut->on();
 
   // Start in the "HOME" state...
   _machineState = HOME;
