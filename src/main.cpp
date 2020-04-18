@@ -49,6 +49,7 @@ machineState _machineState;
 machineState _previousMachineState;
 
 String _actionMessagePrevious = "";
+String _stateMessagePrevious = "";
 
 // Forward declarations
 bool doHome();
@@ -264,7 +265,7 @@ bool doPushArmOut()
   // If the push arm isn't stroked out and the "full load" switch isn't tripped, activate the push arm
   if (!_sw_pushArmOut.isPressed() && !_sw_loadIsFull.isPressed())
   {
-    lcdMsg_action("PUSH ARM OUT OR FULL");
+    lcdMsg_action("PUSH ARM OUT or FULL");
     _rl_pushArmOut->on();
     return false;
   }
@@ -441,8 +442,9 @@ void lcdMsg_action(String msg)
 
 void lcdMsg_state(String s)
 {
-  if (_machineState != _previousMachineState)
+  if (s != _stateMessagePrevious)
   {
+    _stateMessagePrevious = s;
     String msg = "State: " + s;
     lcdClearLine(0);
     lcd.print(msg);
