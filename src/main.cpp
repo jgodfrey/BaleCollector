@@ -1,3 +1,13 @@
+#include <SoftwareWire.h>
+const int sda=12, scl=11;   // lcd communication on pins 11 and 12
+SoftwareWire Wire(sda,scl); // rewire lcd controls to some unused pins
+                            // See bperrybap's respons in this thread for details:
+                            // https://forum.arduino.cc/index.php?topic=448155.0
+
+#include <Arduino.h>
+#include <hd44780.h>                       // main hd44780 header
+#include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
+
 #include <Arduino.h>
 #include "JC_Button.h"
 #include <RelayModule.h>
@@ -18,19 +28,27 @@ Button _sw_pushArmIn    = Button(2);
 Button _sw_pushArmOut   = Button(3);
 Button _sw_sweepArmIn   = Button(4);
 Button _sw_sweepArmOut  = Button(5);
+
 Button _sw_unloadChain  = Button(6);
 Button _sw_baleRowReady = Button(7);
 Button _sw_loadIsFull   = Button(8);
 Button _sw_rowSwept     = Button(9);
 
+// Defne LCD details
+hd44780_I2Cexp lcd; // declare lcd object: auto locate & auto config expander chip
+const int LCD_COLS = 20;
+const int LCD_ROWS = 4;
+
 // State machine definitions and string names
 enum machineState { HOME, LOAD, SWEEP_ARM_OUT, SWEEP_ARM_IN, PUSH_ARM_OUT, PUSH_ARM_IN, UNLOAD };
 
 const char *_machineStateNames[] = {
-  "Home", "Load", "Sweep Arm Out", "Sweep Arm In", "Push Arm Out", "Push Arm In", "Unload" };
+  "HOMING", "LOADING", "SWEEP ARM OUT", "SWEEP ARM IN", "PUSH ARM OUT", "PUSH ARM IN", "UNLOADING" };
 
 machineState _machineState;
 machineState _previousMachineState;
+
+String _actionMessagePrevious = "";
 
 // Forward declarations
 bool doHome();
@@ -40,21 +58,23 @@ bool doPushArmOut();
 bool doSweepArmIn();
 bool doSweepArmOut();
 bool doUnload();
+void initLcd();
 void initRelays();
 void initSwitches();
-void printDebugString(String s);
+void lcdClearLine(int i);
+void lcdMsg_state(String s);
+void lcdMsg_action(String s);
+//void printDebugString(String s);
 void readSwitches();
 void writeSwitchStateChanges();
 
-// Track the state of the unload switch (see explanaiton in doUnload())
+// Track the state of the unload switch (see explanation in doUnload())
 bool _unloadSwitchHasOpened;
 
 // A small delay after the "baleRowReady" switch is tripped. Used for the first
 // row only, this allows the row to travel as far as possible before the sweep
 // arm is engaged.
 int _firstRowLoadDelay;
-
-String _previousDebugString;
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
@@ -64,12 +84,13 @@ void setup() {
 
   initSwitches();
 
+  initLcd();
+
   // Start in the "HOME" state...
   _machineState = HOME;
   _previousMachineState = LOAD;
 
   _unloadSwitchHasOpened = false;
-  _previousDebugString = "";
 
   _firstRowLoadDelay = 0;
 }
@@ -79,12 +100,7 @@ void loop() {
   // Update all switch states
   readSwitches();
 
-  #ifdef DEBUG
-    if (_machineState != _previousMachineState)
-    {
-      Serial.println("Changing to state: " + String(_machineStateNames[_machineState]));
-    }
-  #endif
+  lcdMsg_state(String(_machineStateNames[_machineState]));
 
   // State machine processing
   // Note, this should follow the definition found in the "docs" folder of the project
@@ -169,9 +185,7 @@ bool doHome()
   // If the push arm isn't home, start it returning
   if (!_sw_pushArmIn.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for push arm in");
-    #endif
+    lcdMsg_action("PUSH ARM IN");
     _rl_pushArmIn->on();
     return false;
   }
@@ -183,9 +197,7 @@ bool doHome()
   // If the sweep arm isn't home, start it returning
   if (!_sw_sweepArmIn.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for sweep arm in");
-    #endif
+    lcdMsg_action("SWEEP ARM IN");
     _rl_sweepArmIn->on();
     return false;
   }
@@ -194,12 +206,13 @@ bool doHome()
     _rl_sweepArmIn->off();
   }
 
-  // If the unload chain isn't home, start it returning (?????????????)
+  // If the unload chain isn't home, start it returning
+  // Technicall, we can't control this. Here, we activate the clutch
+  // that will allow the chain to move, but the machine must be moved
+  // to activate the chain and ulitmately impact the switch state...
   if (!_sw_unloadChain.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for unload chain");
-    #endif
+    lcdMsg_action("UNLOAD CHAIN");
     _rl_unloadChain->on();
     return false;
   }
@@ -221,12 +234,10 @@ bool doLoad()
   _rl_sweepArmIn->off();
   _rl_sweepArmOut->off();
 
-  // If we don't have 2 bales to push, just keep loading...
+  // If we don't have 2 bales ready to move, just keep loading...
   if (!_sw_baleRowReady.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for 2-bales ready");
-    #endif
+    lcdMsg_action("2-BALES READY");
     _rl_loadChain->on();
     return false;
   }
@@ -253,9 +264,7 @@ bool doPushArmOut()
   // If the push arm isn't stroked out and the "full load" switch isn't tripped, activate the push arm
   if (!_sw_pushArmOut.isPressed() && !_sw_loadIsFull.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for push arm out OR full load switch");
-    #endif
+    lcdMsg_action("PUSH ARM OUT OR FULL");
     _rl_pushArmOut->on();
     return false;
   }
@@ -278,9 +287,7 @@ bool doPushArmIn()
 
   if (!_sw_pushArmIn.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for push arm in");
-    #endif
+    lcdMsg_action("PUSH ARM IN");
     _rl_pushArmIn->on();
     return false;
   }
@@ -304,9 +311,7 @@ bool doSweepArmOut()
   // If the sweep arm isn't stroked out, activate the sweep arm
   if (!_sw_sweepArmOut.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for sweep arm out");
-    #endif
+    lcdMsg_action("SWEEP ARM OUT");
     _rl_sweepArmOut->on();
     return false;
   }
@@ -329,9 +334,7 @@ bool doSweepArmIn()
 
   if (!_sw_sweepArmIn.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for sweep arm in");
-    #endif
+    lcdMsg_action("SWEEP ARM IN");
     _rl_sweepArmIn->on();
     return false;
   }
@@ -362,9 +365,7 @@ bool doUnload()
   // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
   if (!_unloadSwitchHasOpened && _sw_unloadChain.isPressed())
   {
-    #ifdef DEBUG
-      printDebugString("    - Waiting for unload switch to open");
-    #endif
+    lcdMsg_action("UNLOAD TO OPEN");
     return false;
   }
 
@@ -375,9 +376,7 @@ bool doUnload()
   // If the switch is *NOT* pressed, we're still unloading. Keep waiting...
   if (!_sw_unloadChain.isPressed())
   {
-    #ifdef DEBUG
-     printDebugString("    - Waiting for unload switch to close");
-    #endif
+    lcdMsg_action("UNLOAD TO CLOSE");
     return false;
   }
 
@@ -386,6 +385,12 @@ bool doUnload()
   _rl_unloadChain->off();
 
   return true;
+}
+
+void initLcd()
+{
+  lcd.begin(LCD_COLS, LCD_ROWS);
+  lcd.clear();
 }
 
 // Initialize all switches
@@ -418,94 +423,125 @@ void readSwitches()
   #endif
 }
 
-void printDebugString(String s)
+void lcdMsg_action(String msg)
 {
-  if (!_previousDebugString.equals(s))
+  if (msg != _actionMessagePrevious)
   {
-    Serial.println(s);
-    _previousDebugString = s;
+    _actionMessagePrevious = msg;
+    lcdClearLine(2);
+    lcd.print("Waiting for switch:");
+    lcdClearLine(3);
+    lcd.print(msg);
+
+    #ifdef DEBUG
+      Serial.println("Waiting for switch: " + msg);
+    #endif
   }
 }
 
-void writeSwitchStateChanges()
+void lcdMsg_state(String s)
 {
-  if (_sw_pushArmIn.wasPressed())
+  if (_machineState != _previousMachineState)
   {
-    Serial.println("    - Push Arm In: Pressed");
-  }
+    String msg = "State: " + s;
+    lcdClearLine(0);
+    lcd.print(msg);
 
-  if (_sw_pushArmIn.wasReleased())
-  {
-    Serial.println("    - Push Arm In: Released");
-  }
-
-  if (_sw_pushArmOut.wasPressed())
-  {
-    Serial.println("    - Push Arm Out: Pressed");
-  }
-
-  if (_sw_pushArmOut.wasReleased())
-  {
-    Serial.println("    - Push Arm Out: Released");
-  }
-
-  if (_sw_sweepArmIn.wasPressed())
-  {
-    Serial.println("    - Sweep Arm In: Pressed");
-  }
-
-  if (_sw_sweepArmIn.wasReleased())
-  {
-    Serial.println("    - Sweep Arm In: Released");
-  }
-
-  if (_sw_sweepArmOut.wasPressed())
-  {
-    Serial.println("    - Sweep Arm Out: Pressed");
-  }
-
-  if (_sw_sweepArmOut.wasReleased())
-  {
-    Serial.println("    - Sweep Arm Out: Released");
-  }
-
-  if (_sw_unloadChain.wasPressed())
-  {
-    Serial.println("    - Unload Chain: Pressed");
-  }
-
-  if (_sw_unloadChain.wasReleased())
-  {
-    Serial.println("    - Unload Chain: Released");
-  }
-
-  if (_sw_baleRowReady.wasPressed())
-  {
-    Serial.println("    - Bale Row Ready: Pressed");
-  }
-
-  if (_sw_baleRowReady.wasReleased())
-  {
-    Serial.println("    - Bale Row Ready: Released");
-  }
-
-  if (_sw_loadIsFull.wasPressed())
-  {
-    Serial.println("    - Load Is Full: Pressed");
-  }
-
-  if (_sw_loadIsFull.wasReleased())
-  {
-    Serial.println("    - Load Is Full: Released");
-  }
-
-  if (_sw_rowSwept.wasPressed())
-  {
-    Serial.println("    - Row Swept: Pressed");
-  }
-
-  if (_sw_rowSwept.wasReleased())
-  {
-    Serial.println("    - Row Swept: Released");
+    #ifdef DEBUG
+      Serial.println(msg);
+    #endif
   }
 }
+
+void lcdClearLine(int line)
+{
+  lcd.setCursor(0,line);
+  for(int n = 0; n < LCD_COLS; n++)
+  {
+    lcd.print(" ");
+  }
+  lcd.setCursor(0, line);
+}
+
+// void writeSwitchStateChanges()
+// {
+//   if (_sw_pushArmIn.wasPressed())
+//   {
+//     Serial.println("    - Push Arm In: Pressed");
+//   }
+
+//   if (_sw_pushArmIn.wasReleased())
+//   {
+//     Serial.println("    - Push Arm In: Released");
+//   }
+
+//   if (_sw_pushArmOut.wasPressed())
+//   {
+//     Serial.println("    - Push Arm Out: Pressed");
+//   }
+
+//   if (_sw_pushArmOut.wasReleased())
+//   {
+//     Serial.println("    - Push Arm Out: Released");
+//   }
+
+//   if (_sw_sweepArmIn.wasPressed())
+//   {
+//     Serial.println("    - Sweep Arm In: Pressed");
+//   }
+
+//   if (_sw_sweepArmIn.wasReleased())
+//   {
+//     Serial.println("    - Sweep Arm In: Released");
+//   }
+
+//   if (_sw_sweepArmOut.wasPressed())
+//   {
+//     Serial.println("    - Sweep Arm Out: Pressed");
+//   }
+
+//   if (_sw_sweepArmOut.wasReleased())
+//   {
+//     Serial.println("    - Sweep Arm Out: Released");
+//   }
+
+//   if (_sw_unloadChain.wasPressed())
+//   {
+//     Serial.println("    - Unload Chain: Pressed");
+//   }
+
+//   if (_sw_unloadChain.wasReleased())
+//   {
+//     Serial.println("    - Unload Chain: Released");
+//   }
+
+//   if (_sw_baleRowReady.wasPressed())
+//   {
+//     Serial.println("    - Bale Row Ready: Pressed");
+//   }
+
+//   if (_sw_baleRowReady.wasReleased())
+//   {
+//     Serial.println("    - Bale Row Ready: Released");
+//   }
+
+//   if (_sw_loadIsFull.wasPressed())
+//   {
+//     Serial.println("    - Load Is Full: Pressed");
+//   }
+
+//   if (_sw_loadIsFull.wasReleased())
+//   {
+//     Serial.println("    - Load Is Full: Released");
+//   }
+
+//   if (_sw_rowSwept.wasPressed())
+//   {
+//     Serial.println("    - Row Swept: Pressed");
+//   }
+
+//   if (_sw_rowSwept.wasReleased())
+//   {
+//     Serial.println("    - Row Swept: Released");
+//   }
+// }
