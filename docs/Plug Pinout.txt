@@ -17,7 +17,7 @@ Looking at Male connectors coming from control box...
 11 - Empty
 12 - Empty
 13 - Arduino 8, Switch, Load is Full
-14 - Arduino 9, Switch, Row Ready
+14 - Arduino 9, Switch, Row Swept
 15 - Arduino 6, Switch, Unload Chain
 16 - Arduino 7, Switch, Bale Row Ready
 17 - Arduino 4, Switch, Sweep Arm In
