@@ -6,12 +6,12 @@ Looking at Male connectors coming from control box...
 
 01 - Power
 02 - Ground
-03 - Arduino A0, Relay 6, Push Arm Out
-04 - Arduino A1, Relay 5, Push Arm In
-05 - Arduino A2, Relay 4, Sweep Arm Out
-06 - Arduino A3, Relay 3, Sweep Arm In
-07 - Arduino A4, Relay 2, Load Chain
-08 - Arduino A5, Relay 1, Unload Chain
+03 - Arduino A5, Relay 1, Unload Chain
+04 - Arduino A4, Relay 2, Load Chain
+05 - Arduino A3, Relay 3, Sweep Arm In
+06 - Arduino A2, Relay 4, Sweep Arm Out
+07 - Arduino A1, Relay 5, Push Arm In
+08 - Arduino A0, Relay 6, Push Arm Out
 09 - Empty
 10 - Empty
 11 - Empty
