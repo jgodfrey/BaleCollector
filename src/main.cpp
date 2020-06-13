@@ -12,7 +12,7 @@ SoftwareWire Wire(sda,scl); // rewire lcd controls to some unused pins
 #include "JC_Button.h"
 #include <RelayModule.h>
 
-#define DEBUG
+//#define DEBUG
 #define INVERT_RELAY false
 
 // Define the relays
@@ -46,7 +46,6 @@ const char *_machineStateNames[] = {
   "HOMING", "LOADING", "SWEEP ARM OUT", "SWEEP ARM IN", "PUSH ARM OUT", "PUSH ARM IN", "UNLOADING" };
 
 machineState _machineState;
-machineState _previousMachineState;
 
 String _actionMessagePrevious = "";
 String _stateMessagePrevious = "";
@@ -65,17 +64,12 @@ void initSwitches();
 void lcdClearLine(int i);
 void lcdMsg_state(String s);
 void lcdMsg_action(String s);
-//void printDebugString(String s);
 void readSwitches();
 void writeSwitchStateChanges();
 
-// Track the state of the unload switch (see explanation in doUnload())
-bool _unloadSwitchHasOpened;
-
-// A small delay after the "baleRowReady" switch is tripped. Used for the first
-// row only, this allows the row to travel as far as possible before the sweep
-// arm is engaged.
-int _firstRowLoadDelay;
+// Unload state and delay settings
+int _ignoreUnloadSwitchDelay;
+bool _unloadDelayDone;
 
 // Core Arduino setup() function, used here for initilization
 void setup() {
@@ -89,11 +83,10 @@ void setup() {
 
   // Start in the "HOME" state...
   _machineState = HOME;
-  _previousMachineState = LOAD;
 
-  _unloadSwitchHasOpened = false;
-
-  _firstRowLoadDelay = 0;
+  // Run the unload chain for 2 seconds before starting to monitor
+  // the "unload done" switch
+  _ignoreUnloadSwitchDelay = 2000;
 }
 
 // Core Arduino loop() function, used here for FSM control
@@ -154,7 +147,7 @@ void loop() {
       {
         if (_sw_loadIsFull.isPressed())
         {
-          _unloadSwitchHasOpened = false;
+          _unloadDelayDone = false;
           _machineState = UNLOAD;
         }
         else
@@ -171,8 +164,6 @@ void loop() {
       }
       break;
   }
-
-  _previousMachineState = _machineState;
 }
 
 // Home all mechanical functions to start in a known state
@@ -208,7 +199,7 @@ bool doHome()
   }
 
   // If the unload chain isn't home, start it returning
-  // Technicall, we can't control this. Here, we activate the clutch
+  // Technically, we can't control this. Here, we activate the clutch
   // that will allow the chain to move, but the machine must be moved
   // to activate the chain and ulitmately impact the switch state...
   if (!_sw_unloadChain.isPressed())
@@ -244,9 +235,6 @@ bool doLoad()
   }
   else
   {
-    // If this is the first row, let it travel for a while longer to better
-    // position it for the sweep arm
-    if (!_sw_rowSwept.isPressed()) { delay(_firstRowLoadDelay); }
     _rl_loadChain->off();
     return true;
   }
@@ -344,8 +332,8 @@ bool doSweepArmIn()
     _rl_sweepArmIn->off();
     return true;
   }
-}
 
+}
 // We're full. Unload the 10-bale set.
 bool doUnload()
 {
@@ -356,23 +344,18 @@ bool doUnload()
   _rl_sweepArmIn->off();
   _rl_sweepArmOut->off();
 
-  // Note, the cycle both starts and stops with the same switch being tripped...
-  // The switch should be "pressed" at the start of the cycle. Run the unload chain until
-  // the switch opens. Then, continue to run the chain until the switch closes again.
-
   // blindly turn on the unload chain...
   _rl_unloadChain->on();
 
-  // If the unload switch hasn't yet been opened and it's currently pressed, keep waiting...
-  if (!_unloadSwitchHasOpened && _sw_unloadChain.isPressed())
+  // let it run for some time to ensure that it *passes* the switch, then
+  // wait for the switch to trip - indicating the chain has moved 180
+  // degrees and the unload cycle is complete
+  if (!_unloadDelayDone)
   {
-    lcdMsg_action("UNLOAD TO OPEN");
+    delay(_ignoreUnloadSwitchDelay);
+    _unloadDelayDone = true;
     return false;
   }
-
-  // Here, the switch has opened (should be the start of the unload cycle)
-  // Remember its state, but keep waiting...
-  _unloadSwitchHasOpened = true;
 
   // If the switch is *NOT* pressed, we're still unloading. Keep waiting...
   if (!_sw_unloadChain.isPressed())
@@ -381,8 +364,8 @@ bool doUnload()
     return false;
   }
 
-  // Finally, the switch is closed again and we're at the end of the unload state
-  _unloadSwitchHasOpened = false;
+  // Finally, the switch is closed and we're at the end of the unload state
+  // Turn off the unload chain
   _rl_unloadChain->off();
 
   return true;
@@ -418,10 +401,6 @@ void readSwitches()
   _sw_baleRowReady.read();
   _sw_loadIsFull.read();
   _sw_rowSwept.read();
-
-  #ifdef DEBUG
-    //writeSwitchStateChanges();
-  #endif
 }
 
 void lcdMsg_action(String msg)
@@ -464,86 +443,3 @@ void lcdClearLine(int line)
   }
   lcd.setCursor(0, line);
 }
-
-// void writeSwitchStateChanges()
-// {
-//   if (_sw_pushArmIn.wasPressed())
-//   {
-//     Serial.println("    - Push Arm In: Pressed");
-//   }
-
-//   if (_sw_pushArmIn.wasReleased())
-//   {
-//     Serial.println("    - Push Arm In: Released");
-//   }
-
-//   if (_sw_pushArmOut.wasPressed())
-//   {
-//     Serial.println("    - Push Arm Out: Pressed");
-//   }
-
-//   if (_sw_pushArmOut.wasReleased())
-//   {
-//     Serial.println("    - Push Arm Out: Released");
-//   }
-
-//   if (_sw_sweepArmIn.wasPressed())
-//   {
-//     Serial.println("    - Sweep Arm In: Pressed");
-//   }
-
-//   if (_sw_sweepArmIn.wasReleased())
-//   {
-//     Serial.println("    - Sweep Arm In: Released");
-//   }
-
-//   if (_sw_sweepArmOut.wasPressed())
-//   {
-//     Serial.println("    - Sweep Arm Out: Pressed");
-//   }
-
-//   if (_sw_sweepArmOut.wasReleased())
-//   {
-//     Serial.println("    - Sweep Arm Out: Released");
-//   }
-
-//   if (_sw_unloadChain.wasPressed())
-//   {
-//     Serial.println("    - Unload Chain: Pressed");
-//   }
-
-//   if (_sw_unloadChain.wasReleased())
-//   {
-//     Serial.println("    - Unload Chain: Released");
-//   }
-
-//   if (_sw_baleRowReady.wasPressed())
-//   {
-//     Serial.println("    - Bale Row Ready: Pressed");
-//   }
-
-//   if (_sw_baleRowReady.wasReleased())
-//   {
-//     Serial.println("    - Bale Row Ready: Released");
-//   }
-
-//   if (_sw_loadIsFull.wasPressed())
-//   {
-//     Serial.println("    - Load Is Full: Pressed");
-//   }
-
-//   if (_sw_loadIsFull.wasReleased())
-//   {
-//     Serial.println("    - Load Is Full: Released");
-//   }
-
-//   if (_sw_rowSwept.wasPressed())
-//   {
-//     Serial.println("    - Row Swept: Pressed");
-//   }
-
-//   if (_sw_rowSwept.wasReleased())
-//   {
-//     Serial.println("    - Row Swept: Released");
-//   }
-// }
