@@ -1,5 +1,5 @@
 # BaleCollector
-An arduino project created to automate a piece of homemade farming equipment (shown below). The project consists of a single Arduino Uno board, 6 relays, an LCD panel, and custom driver software (this repo).
+An arduino project created to automate a piece of homemade farming equipment built by may Dad (shown below). The project consists of a single Arduino Uno board, 6 relays, an LCD panel, and custom driver software (this repo).
 
 The machine is designed to "collect" 10 square hay bales, configure them in a specific pattern that forms a square, and then eject that completed square onto the ground behind the machine. Later, multiple squares are stacked together to form a cube for storage or transport.
 
