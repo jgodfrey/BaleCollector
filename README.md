@@ -5,6 +5,8 @@ The machine is designed to "collect" 10 square hay bales, configure them in a sp
 
 The Arudino was used to automate the entire process based on the feedback of various proximity switches indicating the current "state" of the machine. The mechanical devices on the machine controlled by the Arduino include a number of solenoid-driven hydraulic cylinders and pumps as well as an electric clutch.
 
+All of the electronics (including an LCD screen for machine state and debugging) were installed in a project box using custom, 3d-printed mounts.
+
 ![alt text](https://i.imgur.com/t25SUmL.jpg)
 
 ![alt text](https://i.imgur.com/QJbb2hS.jpg)
